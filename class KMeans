@@ -1,0 +1,136 @@
+class KMeans: 
+  def __init__(self, K, max_iters=1000): 
+    self.K = K 
+    self.max_iters = max_iters 
+    self.clusters = [[] for _ in range(K)]
+    self.cluster_idx = [[] for _ in range(K)]
+    self.centroids = []
+    self.init_centroids = [[] for _ in range(K)]
+  
+  def fit(self, X): 
+    self.X = X
+    n_samples, n_features = X.shape
+    # print('n samples', n_samples)
+    # print('n features', n_features)
+
+    np.random.seed(42)
+    random_sample_idxs = np.random.choice(n_samples, self.K, replace=False)
+    for sample_idx in random_sample_idxs: 
+      self.centroids.append(X[sample_idx])
+      print('centroid awal', sample_idx, self.centroids)
+    self.init_centroids = self.centroids.copy()
+    # print('init centroid random', self.init_centroids)
+
+    self.iterasi = 0
+    for i in range(self.max_iters): 
+      # print('\niterasi', iterasi)
+      self.clusters, self.cluster_idx = self.assign_sample(self.centroids)
+      # print('clusters max iters', i, self.clusters)
+
+      old_centroids = self.centroids
+      self.centroids = self.find_new_centroid(self.clusters, self.centroids)
+      # print('\nold centroids', old_centroids)
+      # print('new centroids', self.centroids)
+
+      if self.is_converged(old_centroids, self.centroids, self.K): 
+        break
+
+      self.iterasi += 1
+
+    self.labels = self.create_labels(self.clusters)
+  
+    return np.array(self.labels)
+
+  def assign_sample(self, centroids): 
+    new_cluster = [[] for _ in range(len(self.clusters))]
+    cluster_idxs = [[] for _ in range(len(self.clusters))]
+    # print('centroid in assign sample', centroids)
+
+    for sample in range(len(self.X)):
+      # print('sample', sample, self.X[sample])
+      distances = []
+      for centroid in centroids: 
+        # print('centroid', centroid)
+        dist = self.euclidean_distance(self.X[sample], centroid)
+        # print(dist)
+        distances.append(dist)
+      # print('distances', distances)
+
+      min_distance_idx = np.argmin(distances)
+      # print('min_distance_idx', min_distance_idx)
+      new_cluster[min_distance_idx].append(self.X[sample]) 
+      cluster_idxs[min_distance_idx].append(sample) 
+
+    return new_cluster, cluster_idxs
+
+  def euclidean_distance(self, x1, x2): 
+    x1 = np.array(x1)
+    x2 = np.array(x2)
+    return np.sqrt(np.sum((x1-x2)**2))
+  
+  def find_new_centroid(self, clusters, centroids): 
+    # print('update centroid baru')
+    # print('centroids in find new centroid', centroids)
+    new_centroids = [[] for i in range(len(clusters))]
+    # print('new_centroid di find new centroid', new_centroids)
+    for idx, cluster in enumerate(clusters): 
+      # Check jika cluster mempunyai sample
+      mean_cluster = []
+      if len(cluster) == 0: 
+        mean_cluster = centroids[idx]
+      else: 
+        mean_cluster = self.calculate_mean(cluster)
+      
+      new_centroids[idx] = mean_cluster
+      # print('new_centroids[idx]', new_centroids[idx])
+    return new_centroids
+
+  def calculate_mean(self, cluster): 
+    list_cluster = np.array(cluster)
+    row, col = list_cluster.shape
+    # print('cluster', list_cluster)
+    # print('row', row)
+    # print('col', col)
+    mean_feature = []
+    for feature in range(col): 
+      # print('feature', feature)
+      sum_feature = 0
+      for sample in list_cluster: 
+        # print('sample [', feature, ']', sample[feature])
+        sum_feature += sample[feature] 
+      # print('sum feature', sum_feature, '/', row, '=', sum_feature/row)
+      mean_feature.append(sum_feature/row)
+    # print('mean_feature', mean_feature)
+
+    return mean_feature
+
+  def is_converged(self, old_centroids, current_centroids, K): 
+    # diasumsi kalau old_centroids dan current_centroids mempunyai shape yang sama
+    distances = []
+    for i in range(K): 
+      p = old_centroids[i]
+      # print('\nold_centroid', i, old_centroids[i])
+      q = current_centroids[i]
+      # print('current_centroids', i, current_centroids[i])
+      distances.append(self.euclidean_distance(p,q))
+      
+    return np.sum(distances) == 0
+ 
+  def create_labels(self, clusters): 
+    list_labels = []
+    for cluster_idx in range(len(clusters)): 
+      # print('cluster', cluster_idx)
+      for item in range(len(clusters[cluster_idx])): 
+        # print('item cluster', item)
+        list_labels.append(cluster_idx)
+    
+    print(list_labels)
+    print()
+
+    cluster_idxs_flatten = pd.DataFrame(np.concatenate(self.cluster_idx).tolist(), columns=['Index in Data'])
+    df_labels = pd.DataFrame(list_labels, columns=['Labels'])
+    df_result_labels = pd.concat((cluster_idxs_flatten, df_labels),axis=1)
+    final_labels = df_result_labels[['Index in Data', 'Labels']].sort_values(by=['Index in Data'])['Labels']
+    # print('final_labels', final_labels.tolist())
+
+    return final_labels.tolist()
