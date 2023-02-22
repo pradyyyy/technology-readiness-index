@@ -1,0 +1,200 @@
+class Technology_Readiness_Index(): 
+  
+  def result_TRI(self, data): 
+    self.data = data 
+    
+    result_mean_columns = {}
+    for i in range(len(data.columns)):
+      kolom = data.columns[i]
+      mean, col = self.mean_of_statement(data, kolom)
+      result_mean_columns[col] = mean
+    print('result mean columns', result_mean_columns)
+
+    self.count_columns_variables = self.sum_columns(data)
+    print('count_columns_variables', self.count_columns_variables)
+
+    self.variables_quality = self.quality_of_statement(data)
+    print('variables_quality', self.variables_quality)
+
+    result_mean_statement = self.value_of_statement(result_mean_columns)
+    print('result_mean_statement\n', result_mean_statement)
+
+    plotbar_mean_statement = self.create_plot_bar(result_mean_statement, 15, 5)
+
+    result_index_TRI_by_variable = self.value_variable(result_mean_statement)
+    print('\n\nresult_index_TRI_by_variable\n', result_index_TRI_by_variable)
+    # print(result_index_TRI_by_variable.values().to_list())
+
+    index_value_TRI = round(sum(result_index_TRI_by_variable.values()), 3)
+    # print("\nNilai TRI ", index_value_TRI)
+
+    check_TRI = self.check_value_TRI(index_value_TRI)
+    # print('check TRI', check_TRI)
+
+    self.dataframe_TRI = self.result_dataframe(result_index_TRI_by_variable, index_value_TRI, check_TRI)
+    # print('dataframe', self.dataframe_TRI)
+
+    return self.dataframe_TRI
+
+  def mean_of_statement(self, data, col): 
+    count_1 = 0
+    count_2 = 0
+    count_3 = 0
+    count_4 = 0
+    count_5 = 0
+    count_list = []
+    skala_likert = [1,2,3,4,5]
+    # print(skala_likert)
+
+    for label, content in data.iterrows():
+      # print(label, content)
+      value = content[col]
+      if value == 1:
+        count_1 += 1
+      if value == 2:
+        count_2 += 1
+      if value == 3:
+        count_3 += 1
+      if value == 4:
+        count_4 += 1
+      if value == 5:
+        count_5 += 1
+
+    count_list.append(count_1)
+    count_list.append(count_2)
+    count_list.append(count_3)
+    count_list.append(count_4)
+    count_list.append(count_5)
+    # print()
+    # print("List jawaban ", count_list)
+
+    sum_list = sum(count_list)
+    # print("Jumlah responden" , sum_list)
+
+    total = 0
+    for i in range(len(count_list)):
+      result = skala_likert[i] * count_list[i]
+      total += result
+    # print("Hasil perkalian " , total)
+
+    # mean pernyataan
+    mean = total/sum_list
+    # print("Nilai mean ", mean)
+    return mean, col
+
+  def sum_columns(self, data): 
+    total_opt_statement = 0
+    total_ino_statement = 0
+    total_dis_statement = 0
+    total_ins_statement = 0
+
+    for i in range(len(data.columns)):
+      if 'OPT' in data.columns[i]:
+        total_opt_statement += 1
+      if 'INO' in data.columns[i]:
+        total_ino_statement += 1
+      if 'DIS' in data.columns[i]:
+        total_dis_statement += 1
+      if 'INS' in data.columns[i]:
+        total_ins_statement += 1
+
+    return total_opt_statement, total_ino_statement, total_dis_statement, total_ins_statement
+
+  def quality_of_statement(self, data): 
+    percent_of_statement = 25/100
+    bobot_opt = percent_of_statement / self.count_columns_variables[0]
+    bobot_ino = percent_of_statement / self.count_columns_variables[1]
+    bobot_dis = percent_of_statement / self.count_columns_variables[2]
+    bobot_ins = percent_of_statement / self.count_columns_variables[3]
+
+    return bobot_opt, bobot_ino, bobot_dis, bobot_ins
+
+  def value_of_statement(self, data): 
+    list_bobot = []
+    for i in range(self.count_columns_variables[0]):
+      list_bobot.append(self.variables_quality[0])
+    for i in range(self.count_columns_variables[1]):
+      list_bobot.append(self.variables_quality[1])
+    for i in range(self.count_columns_variables[2]):
+      list_bobot.append(self.variables_quality[2])
+    for i in range(self.count_columns_variables[3]):
+      list_bobot.append(self.variables_quality[3])
+
+    # print(list_bobot)
+    # print(result_mean)
+
+    new_result = {}
+    number = 0
+    for label, value in data.items():
+      result = value * list_bobot[number]
+      new_result[label] = result
+      number += 1
+
+    return new_result
+
+  def create_plot_bar(self, data, x, y):
+    value = list(data.values())
+    keys = list(data.keys())
+
+    fig, ax = plt.subplots(1,1)
+    fig.set_figwidth(x)
+    fig.set_figheight(y)
+
+    plt.bar(range(len(data)), value, color=sns.color_palette("coolwarm", 16))
+    plt.xticks(range(len(data)), keys)
+    for i, v in enumerate(value):
+      ax.text(i, value[i] + 0.003 , str(round(value[i], 3)), ha='center')
+
+    return plt.show()
+
+  def value_variable(self, data):
+    iterator = []
+    iterator.append(self.count_columns_variables[0])
+    iterator.append(self.count_columns_variables[1])
+    iterator.append(self.count_columns_variables[2])
+    iterator.append(self.count_columns_variables[3])
+    # print('iterator fungsi', iterator)
+    iterator_index = 0
+    # print('iterator[iterator_index] fungsi', iterator[iterator_index]) 
+    pointer = 0 # untuk penanda
+    partial_result = 0
+    sum_result = {}
+
+    for label, value in data.items():
+      # print('value', value)
+      new_label = label[:-1]
+      # print('new_label', new_label)
+      partial_result += value
+      # print('partial result', partial_result)
+      pointer += 1
+      # print('pointer sebelum if', pointer)
+      # print('iterator[iterator_index] sebelum if',  iterator[iterator_index])
+      if pointer == iterator[iterator_index]:
+        # print('pointer', pointer)
+        # print('iterator[iterator_index]', iterator[iterator_index])
+        sum_result[new_label] = round(partial_result, 3)
+        # print('partial result masuk if', partial_result)
+        iterator_index += 1
+        # print('iterator index masuk if', iterator_index)
+        pointer = 0
+        partial_result = 0
+
+    return sum_result
+
+  def check_value_TRI(self, nilai_TRI):
+    category_name = ""
+    if nilai_TRI <= 2.82:
+      category_name = "Low technology readiness"
+    elif 2.83 <= nilai_TRI <= 3.24:
+      category_name = "Medium technology readiness"
+    else:
+      category_name = "High technology readiness"
+
+    return category_name
+
+  def result_dataframe(self, index_TRI_variable, value_TRI, category_TRI): 
+    df_result_TRI = pd.DataFrame([index_TRI_variable], columns=index_TRI_variable.keys())
+    df_result_TRI['Nilai TRI'] = value_TRI
+    df_result_TRI['Kategori'] = category_TRI
+    
+    return df_result_TRI
